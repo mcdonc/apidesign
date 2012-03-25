@@ -74,6 +74,19 @@ Convenience != "Cleanliness"
 - Ex: thread-local state management doesn't work in async systems without
   magical intervention.
 
+I Care About Your Feelings
+--------------------------
+
+- During this talk, I call out antipattern examples from actual projects
+  (including my own).
+
+- If I use code from one of your projects as an antipattern example, it
+  doesn't mean I don't like you.  It doesn't even mean I don't respect and
+  use your code.
+
+- This talk is impossible to give without showing negative examples.  I'm
+  lazy and the best negative examples are those that already exist.
+
 #1: Global State is Precious
 ----------------------------
 
@@ -371,6 +384,8 @@ Antipatterns
 
 - Pylons and Flask.
 
+- Stacked object proxies / context locals.
+
 Pylons' Stacked Object Proxies
 ------------------------------
 
@@ -411,7 +426,7 @@ Flask has the same concept for its ``request``:
 What's Wrong With This?
 -----------------------
 
-- Things that are not logically global (``request`` and ``response``) are
+- Things that are not logically global (``request`` and/or ``response``) are
   obtained via an import.
 
 - Stacked object proxies / context locals are magical proxy objects that
