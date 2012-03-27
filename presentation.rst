@@ -560,27 +560,28 @@ Codependency
 - Encapsulation is almost never strictly honored when inheritance is used, so
   changes to a parent class will almost always break some number of existing
   subclasses that had implementers who weren't paying attention to the
-  parent's interface when they originally inherited it.
+  specialization interface when they originally inherited it.
 
-- Superclass design is easy to get wrong.  The "specialization interface" can
-  be hard to document.  The superclass may start simple, initially created to
-  handle one or two particular cases of reuse via inheritance, but over time,
-  as folks with varying levels of involvement add to it, it may begin to
-  assume a particular behavior or outcome from one method or some combination
-  of methods.
+- The "specialization interface" of a superclass can be hard to document and
+  it's very easy to get wrong.
+
+- The superclass may start simple, initially created to handle one or two
+  particular cases of reuse via inheritance, but over time, as more folks add
+  to its specialization interface, it may need to become very abstract.
 
 Codependency (Cont'd)
 ---------------------
-
-- The expected behavior or outcome of an operation becomes hard to explain
-  and difficult for a subclass to enforce.  It may change over time, breaking
-  existing subclasses in hard-to-predict ways.
 
 - A potential maintainer of the superclass may need to gain a detailed
   understanding of the implementation of in-the-wild subclasses in order to
   maintain the superclass.  When the superclass reaches a high level of
   abstraction, it may not be obvious what the purpose of the class is or why
   it's implemented as it is.  This can scare off potential contributors.
+
+- The superclass may assume a particular state outcome from a combination of
+  method calls.  The expected outcome of such an operation is hard to explain
+  and difficult for a subclass to enforce.  It may need to change over time,
+  breaking existing subclasses in hard-to-predict ways.
 
 - Subclasses may unknowingly coopt and change the meaning of superclass
   instance or class variables.
