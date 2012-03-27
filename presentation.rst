@@ -295,6 +295,15 @@ Alternatives to Mutable Globals
   its users.  This makes the library code reusable, and if someone wants to
   build an alternate set of convenience APIs, they can.
 
+Quote
+-----
+
+This method of turning your code inside out is the secret to solving what
+appear to be hopelessly state-oriented problems in a purely functional
+style. Push the statefulness to a higher level and let the caller worry about
+it. Keep doing that as much as you can, and you'll end up with the bulk of
+the code being purely functional. -- http://prog21.dadgum.com/131.html
+
 #2: Configuration at Module Scope
 ---------------------------------
 
@@ -430,9 +439,9 @@ What's Wrong With This?
   obtained via an import.
 
 - Stacked object proxies / context locals are magical proxy objects that
-  access a thread-local (action-at-a-distance) when interrogated.  Nonmagical
-  version is hidden away from you (``request = self._py_object.request``) in
-  Pylons.
+  access a thread-local when asked for an attribute (2 levels of magic).
+  Nonmagical version is hidden away from you, at least in Pylons (``request =
+  self._py_object.request``).
 
 - Encourages inappropriate coupling of non-web-context code to a web context
   (e.g. "model" modules start to ``import request``).
@@ -496,22 +505,160 @@ Why Is This Bad?
 
 - This was done with the intent of avoiding documentation that tells people
   to subclass AuthTktAuthenticationPolicy, preferring to tell them to compose
-  something together using a callback arg to the policy's constructor.  But
-  telling folks to subclassing AuthTktAuthenticationPolicy and to override a
-  ``find_groups`` method in the subclass would probably be less confusing, as
-  this pattern is more widely understood (for better or worse).
+  something together by passing a callback function to the policy's
+  constructor.  But telling folks to subclassing AuthTktAuthenticationPolicy
+  and to override e.g. a ``find_groups`` method in the subclass would
+  probably be less confusing and more straightforward.
 
-#5: First, Do No Harm
+#5: Superclass Danger
+---------------------
+
+- Offering up superclasses "from on high" in a library or framework is
+  often a bad idea (although not always).
+
+- Composition usually beats inheritance.
+
+The Yo-Yo Problem
+------------------
+
+- http://en.wikipedia.org/wiki/Yo-yo_problem
+
+- " ... occurs when  a programmer has to read and  understand a program whose
+  inheritance graph  is so long  and complicated  that the programmer  has to
+  keep flipping between  many different class definitions in  order to follow
+  the control flow of the program..."
+
+.. sourcecode:: python
+
+   class Item(Base,
+              Resource,
+              CopySource,
+              Tabs,
+              Traversable,
+              Owned,
+              UndoSupport,
+              ):
+       """A common base class for simple, non-container objects."""
+
+Codependency
+------------
+
+- Encapsulation is almost never strictly honored when inheritance is used, so
+  changes to a parent class will almost always break some number of existing
+  subclasses that had implementers who weren't paying attention to the
+  parent's interface when they originally inherited it.
+
+- Superclass design is easy to get wrong.  The "specialization interface" can
+  be hard to document.  The superclass may start simple, initially created to
+  handle one or two particular cases of reuse via inheritance, but over time,
+  as folks with varying levels of involvement add to it, it may begin to
+  assume a particular behavior or outcome from one method or some combination
+  of methods.
+
+- The expected behavior or outcome over time becomes hard to explain and
+  difficult for a subclass to enforce.  It may change over time, breaking
+  existing subclasses in hard-to-predict ways.
+
+- A potential maintainer of the superclass may need to gain a detailed
+  understanding of the implementation of one or more subclasses in order to
+  maintain the superclass.  When the superclass reaches a high level of
+  abstraction, it may not be obvious what the purpose of the class is or why
+  it's implemented as it is.  This can scare off potential contributors.
+
+- Subclasses may unknowingly coopt and change the meaning of superclass
+  instance or class variables.
+
+Smells
+------
+
+From http://www.midmarsh.co.uk/planetjava/tutorials/design/InheritanceConsideredHarmful.PDF
+
+- Subclasses which override methods used by other inherited methods (which
+  are thus reliant on the behaviour and results of the overridden methods).
+
+- A subclass which extends inherited methods using ``super``.  Other
+  inherited methods may rely on the extended method.  In addition the
+  subclass must ensure that its use of the super method as well as its
+  extensions are appropriate.
+
+- A subclasse which relies on or changes the state of key instance variables
+  that are not part of the API.
+
+Alternatives
+------------
+
+- Composition
+
+- Event systems
+
+Composition
+------------
+
+- Instead of telling folks to override a method of a library superclass via
+  inheritance, you can tell them to pass in an object to a library class
+  constructor that represents the custom logic that would have otherwise gone
+  in a method of a would-be subclass.  The thing they pass to you is a
+  "component".
+
+- When a library or framework uses a component, the only dependency between
+  the library code and the component is the component's interface.  The
+  library code will only have visibility into the component via its
+  interface.  The component has no visibility into the library code at all.
+
+- It's less likely that a component author will rely on non-API
+  implementation details of the library than it would be if he subclassed a
+  library parent class.  The potential distraction of the ability to
+  customize every aspect of the behavior of the system by overriding methods
+  is removed.
+
+- A clear contract makes it possible to change the implementation of the
+  library *and* the component with reduced fear of breaking the integration
+  of the two.
+
+- Good when a problem and interaction is well-defined and well-understood.
+  If you're writing a library, this should, by definition, be true.  But it
+  can be limiting in circumstances where the problem is not yet well-defined
+  or well-understood, like in requirements-sparse environments.  Composition
+  is "take it or leave it" customizability.  It can be easier to use
+  inheritance in a system where you control the horizontal and vertical.  If
+  you control the horizontal and vertical, you can always later switch from
+  inheritance to composition once the problem is fully understood and more
+  people begin to want to reuse your code.
+
+Event Systems
+-------------
+
+- Specialized kind of composition.
+
+- Instead of adding a ``on_modification`` method of a class, and requiring
+  that people subclass the class to override the method, have the
+  would-be-superclass send an event to an event system.  The event system can
+  be plugged into by system extenders as necessary.
+
+- This is more flexible than subclassing too, because there's more than one
+  entry point to extending behavior: an event can be subscribed to by any
+  number of prospective listeners instead of just one.
+
+- Can be a bitch to understand and debug due to action-at-a-distance.
+
+When To Offer A Superclass
+--------------------------
+
+- When the behavior is absolutely fundamental to the spirit and intent of the
+  library or framework (e.g. ZODB's ``Persistent``).  Parent classes offered
+  as slight variations on a theme (e.g. Django class-based views shipped as
+  niceties) are not fundamental.
+
+- A superclass should almost always be abstract.  When you inherit from a
+  concrete parent class, you're usually inheriting from something that the
+  author hasn't designed for specialization, and it's likely that neither you
+  nor he will be clear on what the specialization interface actually is.
+
+#6: First, Do No Harm
 ----------------------
 
-- Offering decorators that mutate the call signature of a function or method.
-
-#6: Composition Beats Inheritance
----------------------------------
-
-- Offering up superclasses is usually a bad idea (although not always).
-
-- Composition beats inheritance almost always.
+- Offering decorators that change the call signature of the function or
+  method they decorate.
 
 #7: Avoid Requiring Imports for Side-Effects
 ---------------------------------------------
