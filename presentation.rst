@@ -442,9 +442,9 @@ What's Wrong With This?
   obtained via an import.
 
 - Stacked object proxies / context locals are proxy objects that access a
-  thread-local when asked for an attribute (2 levels of magic).  Nonmagical
-  version is hidden away from you, at least in Pylons (``request =
-  self._py_object.request``).
+  thread-local when asked for an attribute.  Two levels of magic: a proxy and
+  its retrieval of a concrete threadlocal.  Nonmagical version is hidden away
+  from you, at least in Pylons (``request = self._py_object.request``).
 
 - Encourages inappropriate coupling of non-web-context code to a web context
   (e.g. "model" modules start to ``import request``).
