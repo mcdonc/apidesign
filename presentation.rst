@@ -567,7 +567,8 @@ Codependency
 
 - The superclass may start simple, initially created to handle one or two
   particular cases of reuse via inheritance, but over time, as more folks add
-  to its specialization interface, it may need to become very abstract.
+  to its specialization interface, it will need to do more delegation, and
+  may be required to become very abstract.
 
 Codependency (Cont'd)
 ---------------------
