@@ -44,8 +44,8 @@ Why People Make Bad Libraries
 
 - Skewed perception of "cleanliness".
 
-Differences: Libs, Frameworks, Apps
------------------------------------
+Libs, Frameworks, Apps
+----------------------
 
 - Library: maintains none or little of its own state, no or few callbacks.
 
@@ -54,17 +54,14 @@ Differences: Libs, Frameworks, Apps
   instance is often fed to a global mainloop, but that doesn't mean it should
   use globals with abandon.  Even then if the framework doesn't use global
   state, with a little care, two framework instances can live in the same
-  process (e.g. a multiplexer for a "composite" application where each app
-  serves from a prefix).
+  process.
 
 - Application: maintains lots of state, can use global state with abandon.
-
-- It's not discrete, it's a gradient.
 
 Convenience != "Cleanliness"
 ----------------------------
 
-- The assumption: "clean" == "is maximally convenient for the case i presume
+- The assumption: "clean" == "is maximally convenient for the case I presume
   this code is going to be used in"
 
 - The reality:  "clean" == "maximally understandable; without surprises or
@@ -124,8 +121,8 @@ Antipatterns
 - Antipatterns from the Python standard library: ``logging``,
   ``multiprocessing``, ``mimetypes``.
 
-atexit Registration During Import
----------------------------------
+atexit Register During Import
+-----------------------------
 
 Importing ``multiprocessing`` from the standard library causes an atexit
 function to be registered at module scope:
@@ -133,20 +130,17 @@ function to be registered at module scope:
 .. sourcecode:: python
 
    def _exit_function():
-
        # ... elided ...
-
        for p in active_children():
            if p._daemonic:
                info('calling terminate() for daemon %s', p.name)
                p._popen.terminate()
-
        # .. elided ...
 
    atexit.register(_exit_function)
 
-atexit Registration During Import (2)
--------------------------------------
+atexit Register During Import (2)
+---------------------------------
 
 From ``logging`` module:
 
@@ -185,8 +179,8 @@ Why Is This Bad (Cont'd)?
   you attempt to use the ``logging.Handler`` class independent of the rest of
   the framework (see next slide).
 
-Globals Mutation From Constructor
----------------------------------
+Ctor Globals Mutation
+---------------------
 
 Mutating a global registry as the result of an object constructor (again from
 ``logging``).
@@ -202,8 +196,8 @@ Mutating a global registry as the result of an object constructor (again from
            _handlerList.insert(0, self)
            # .. elided code ..
 
-Globals Mutation From Constructor (2)
--------------------------------------
+Ctor Globals Mutation (2)
+-------------------------
 
 From ``asyncore`` (at least it lets you choose the ``map``):
 
@@ -260,9 +254,9 @@ Calls for Side-Effects (2)
 What's Wrong with This?
 -----------------------
 
-- The ``logging`` and ``mimetypes`` APIs encourage users to mutate external
-  global state by calling APIs that have return values that nobody cares
-  about (the APIs are called only for side effects).
+- The ``logging`` and ``mimetypes`` APIs encourage users to mutate their
+  module's global state by exposing APIs that have return values that nobody
+  cares about (the APIs are called only for side effects).
 
 - Introduces responsibility, chronology, and idempotency confusion.  Who is
   responsible for calling this?  When should they call it?  Can it be called
@@ -309,8 +303,8 @@ style. Push the statefulness to a higher level and let the caller worry about
 it. Keep doing that as much as you can, and you'll end up with the bulk of
 the code being purely functional. -- http://prog21.dadgum.com/131.html
 
-#2: Configuration at Module Scope
----------------------------------
+#2: Module Scope Config
+-----------------------
 
 - Settings at module scope, requiring monkeypatching to change.
 
@@ -330,8 +324,8 @@ From the ``logging`` package:
 .. sourcecode:: python
 
    #
-   #raiseExceptions is used to see if exceptions during handling should be
-   #propagated
+   #raiseExceptions is used to see if exceptions during handling
+   #should be propagated
    #
    raiseExceptions = 1
 
@@ -346,8 +340,8 @@ What's Wrong With This?
 
 - The setting is global.  No way to use separate settings per process.
 
-Inversion of Configuration Control
-----------------------------------
+Inversion of Config Control
+---------------------------
 
 Django ``settings.py``:
 
@@ -375,9 +369,14 @@ What's Wrong With This?
 
 - The settings are global.  No way to use separate settings per process.
 
-- Better: suggest non-Python configuration so likelihood of circular import
-  problems is reduced.  Configuration parsing can be done at startup time, in
-  a nonglobal place, allowing multiple usages of the library per process.
+Solutions
+---------
+
+- Suggest non-Python configuration so likelihood of circular import problems
+  is reduced.  Configuration parsing can be done at startup time, in a
+  nonglobal place, allowing multiple usages of the library per process.
+
+- Purely imperative configuration at process startup time.
 
 #3: Avoid Convenience Features
 ------------------------------
@@ -464,7 +463,7 @@ Instead
 
 - You can always create an (optional) convenience API that allows your
   library's consumers to elide the passing of state, but you can never remove
-  a "mandatory" convenience feature from a library.  It's a one-way street.
+  a "mandatory" convenience feature from a library.
 
 #4: Avoid Knobs on Knobs
 ------------------------
@@ -474,10 +473,10 @@ Instead
 - When that replaceable component itself offers a knob, this is the "knobs on
   knobs" pattern.
 
-Pyramid Authentication Policy Knob
-----------------------------------
+Pyramid Authn Policy
+--------------------
 
-From ``pyramid``, the use of an authentication policy knob:
+From ``pyramid``, the use of an authentication policy knob on knob:
 
 .. sourcecode:: python
 
@@ -517,9 +516,9 @@ Why Is This Bad (Cont'd)?
 - This was done with the intent of avoiding documentation that tells people
   to subclass AuthTktAuthenticationPolicy, preferring to tell them to compose
   something together by passing a callback function to the policy's
-  constructor.  But telling folks to subclassing AuthTktAuthenticationPolicy
-  and to override e.g. a ``find_groups`` method in the subclass would
-  probably be less confusing and more straightforward.
+  constructor.  But telling folks to subclass AuthTktAuthenticationPolicy and
+  to override e.g. a ``find_groups`` method in the subclass would probably be
+  less confusing and more straightforward in this case.
 
 #5: Superclass Danger
 ---------------------
@@ -542,6 +541,8 @@ the control flow of the program..."
 Yo-Yo Problem (Cont'd)
 ----------------------
 
+Almost every Zope object visible from the ZMI inherits from this base class:
+
 .. sourcecode:: python
 
    class Item(Base,
@@ -557,13 +558,16 @@ Yo-Yo Problem (Cont'd)
 Codependency
 ------------
 
-- Encapsulation is almost never strictly honored when inheritance is used, so
-  changes to a parent class will almost always break some number of existing
-  subclasses that had implementers who weren't paying attention to the
-  specialization interface when they originally inherited it.
-
 - The "specialization interface" of a superclass can be hard to document and
   it's very easy to get wrong.
+
+- Encapsulation is rarely honored when inheritance is used, so changes to a
+  parent class will almost always break some number of existing subclasses
+  whose implementers weren't paying attention to the specialization interface
+  when they originally inherited from your library's superclass.
+
+Codependency (Cont'd)
+---------------------
 
 - The superclass may start simple, initially created to handle one or two
   particular cases of reuse via inheritance, but over time, as more folks add
@@ -578,6 +582,9 @@ Codependency (Cont'd)
   A potential maintainer of the superclass may need to gain a detailed
   understanding of the implementation of in-the-wild subclasses in order to
   change the superclass.  This can scare off potential contributors.
+
+Codependency (Cont'd)
+---------------------
 
 - The superclass may assume a particular state outcome from a combination of
   method calls.  The expected outcome of such an operation is hard to explain
@@ -601,11 +608,12 @@ From http://www.midmarsh.co.uk/planetjava/tutorials/design/InheritanceConsidered
 Smells (Cont'd)
 ---------------
 
-- A subclass which relies on or changes the state of key instance variables
-  that are not part of the API.
+- A subclass which relies on or changes the state of "private" instance
+  variables or which calls or overrides methods that are not part of the
+  specialization interface.
 
-Alternatives
-------------
+Alternatives to Inheritance
+---------------------------
 
 - Composition
 
@@ -617,13 +625,19 @@ Composition
 - Instead of telling folks to override a method of a library superclass via
   inheritance, you can tell them to pass in an object to a library class
   constructor that represents the custom logic that would have otherwise gone
-  in a method of a would-be subclass.  The thing they pass to you is a
-  "component".
+  in a method of a subclass.  The thing they pass to you is a "component".
+
+- The interaction between a component and your library class is
+  "composition".
+
+Composition (Cont'd)
+---------------------
 
 - When a library or framework uses a component, the only dependency between
   the library code and the component is the component's interface.  The
   library code will only have visibility into the component via its
-  interface.  The component has no visibility into the library code at all.
+  interface.  The component needn't have any visibility into the library code
+  at all (but often does).
 
 Composition (Cont'd)
 --------------------
@@ -634,38 +648,143 @@ Composition (Cont'd)
   ability to customize every aspect of the behavior of the system by
   overriding methods is removed.
 
-- A clear contract makes it possible to change the implementation of the
-  library *and* the component with reduced fear of breaking the integration
-  of the two.
+- A clear contract makes it feasible to change the implementation of both the
+  library and the component with reduced fear of breaking an integration of
+  the two.
+
+Composition Example
+-------------------
+
+Here's an example of providing a class built to be specialized via
+inheritance:
+
+.. sourcecode:: python
+
+   class TVRemote(object):
+       def __init__(self):
+           self.channel = 0
+
+       def increment_channel(self):
+           self.channel += 1
+
+       def click(self, button):
+           raise NotImplementedError
+
+Composition Example (Cont'd)
+-----------------------------
+
+Here's an example of using the TVRemote class:
+
+.. sourcecode:: python
+
+   from tv import TVRemote
+
+   class MyRemote(TVRemote):
+       def click(self, button):
+           if button == 'blue':
+               self.increment_channel()
+
+   remote = MyRemote()
+   remote.click('blue')
+
+Composition Example (Cont'd)
+-----------------------------
+
+Here's an example of a library class built to be specialized via composition
+instead of inheritance:
+
+.. sourcecode:: python
+
+   class TVRemote(object):
+       def __init__(self, buttons):
+           self.channel = 0
+           self.buttons = buttons
+
+       def increment_channel(self):
+           self.channel += 1
+
+       def click(self, button):
+           self.buttons.click(self, button)
+
+Composition Example (Cont'd)
+-----------------------------
+
+Here's an example of someone using the library class we built for
+composition:
+
+.. sourcecode:: python
+
+   from tv import TVRemote
+
+   class Buttons(object):
+       def click(self, remote, button):
+           if button == 'blue':
+               remote.increment_channel()
+
+   buttons = Buttons()
+   remote = TVRemote(buttons)
+   remote.click('blue')
 
 Composition (Cont'd)
 ---------------------
 
-- Composition is "take it or leave it" customizability.  Good when a problem
-  and interaction is well-defined and well-understood.  If you're writing a
-  library, this should, by definition, be true.  But it can be limiting in
-  circumstances where the problem is not yet well-defined or well-understood,
-  like in requirements-sparse environments.  It can be easier to use
-  inheritance in a system where you control the horizontal and vertical.  If
-  you control the horizontal and vertical, you can always later switch from
-  inheritance to composition once the problem is fully understood and more
-  people begin to want to reuse your code.
+- Composition is "take it or leave it" customizability.  It's a good choice
+  when a problem and interaction is well-defined and well-understood (and, if
+  you're writing a library for other people to use, this should, by
+  definition, be true).  But it can be limiting in requirements-sparse
+  environments where the problem is not yet well-defined or well-understood.
+
+Composition (Cont'd)
+---------------------
+
+- It can be easier to use inheritance in a system where you control the
+  horizontal and vertical while you're working out exactly what the
+  relationship between objects should be.  If you control the horizontal and
+  vertical, you can always later switch from inheritance to composition once
+  the problem is fully understood and people begin to want to reuse your
+  code.
 
 Event Systems
 -------------
 
 - Specialized kind of composition.
 
-- Instead of adding a ``on_modification`` method of a class, and requiring
-  that people subclass the class to override the method, have the
+- For example, instead of adding a ``on_modification`` method of a class, and
+  requiring that people subclass the class to override the method, have the
   would-be-superclass send an event to an event system.  The event system can
   be subscribed to by system extenders as necessary.
+
+Event Systems (Cont'd)
+-----------------------
 
 - This is more flexible than subclassing too, because there's more than one
   entry point to extending behavior: an event can be subscribed to by any
   number of prospective listeners instead of just one.
 
-- Can be a bitch to understand and debug due to action-at-a-distance.
+- Systems reliant on event handling can be a bitch to understand and debug
+  due to action-at-a-distance.
+
+Event System Example
+--------------------
+
+.. sourcecode:: python
+
+   class ButtonPress(object):
+        def __init__(self, remote, button)
+            self.remote = remote
+            self.button = button
+   class TVRemote(object):
+        def __init__(self, event_system):
+            self.channel = 0
+            self.event_system = event_system
+        def click(self, button):
+            self.event_system.notify(ButtonPress(self, button))
+   event_system = EventSystem()
+   def subscriber(event):
+       if event.button == 'blue': event.remote.increment_channel()
+   event_system.subscribe(ButtonPress, subscriber)
+   remote = TVRemote(event_system)
+   remote.click('blue')
 
 When To Offer A Superclass
 --------------------------
@@ -675,22 +794,28 @@ When To Offer A Superclass
   as slight variations on a theme (e.g. Django class-based views shipped as
   niceties) are not fundamental.
 
-- A superclass should almost always be abstract.  When you inherit from a
-  concrete parent class, you're usually inheriting from something that the
-  author hasn't designed for specialization, and it's likely that neither you
-  nor he will be clear on what the specialization interface actually is.
-  High likelihood for future breakage.
+- A superclass offered by your library should almost always be abstract.
+  When a user inherits from a concrete parent class, he's usually inheriting
+  from something that you haven't really designed for specialization, and
+  it's likely that neither you nor he will be completely clear on what the
+  specialization interface actually is.  High likelihood for future breakage.
+
+When To Offer (Cont'd)
+----------------------
+
+- Not always obvious.  Composition is harder for people to wrap their brains
+  around.
+
+- I wish I had used inheritance in the case of an AuthTktAuthenticationPolicy
+  instead of composition because I would have had to answer fewer questions
+  about it.  Python programmers will always understand the mechanics of
+  inheritance better than whatever composition API you provide.
 
 #6: First, Do No Harm
 ----------------------
 
 - Offering decorators that change the call signature of the function or
   method they decorate.
-
-#7: Avoid Requiring Imports for Side-Effects
----------------------------------------------
-
-- Importing a module solely for its side effects (sqla declarative mode).
 
 Todo
 ----
