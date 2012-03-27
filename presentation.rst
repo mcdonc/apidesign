@@ -455,11 +455,12 @@ Instead
 -------
 
 - Design a framework so its users receive an argument (e.g. ``request``) and
-  pass derivations (e.g. ``request.GET['first_name']``) around.  It's
-  initially less convenient for consumers.  It's usually also the right thing
-  to do *in library and framework code*.  Remember that people will want to
-  use your stuff to compose larger systems, and your assumptions about
-  environment may not fit there.
+  suggest to them that they pass derivations
+  (e.g. ``request.GET['first_name']``) around.  It's initially less
+  convenient for consumers.  It's usually also the right thing to do *in
+  library and framework code*.  Remember that people will want to use your
+  stuff to compose larger systems, and your assumptions about environment may
+  not fit there.
 
 - You can always create an (optional) convenience API that allows your
   library's consumers to elide the passing of state, but you can never remove
