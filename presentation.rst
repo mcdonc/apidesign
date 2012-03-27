@@ -572,9 +572,9 @@ Codependency
 Codependency (Cont'd)
 ---------------------
 
-- The expected behavior or outcome becomes hard to explain and difficult for
-  a subclass to enforce.  It may change over time, breaking existing
-  subclasses in hard-to-predict ways.
+- The expected behavior or outcome of an operation becomes hard to explain
+  and difficult for a subclass to enforce.  It may change over time, breaking
+  existing subclasses in hard-to-predict ways.
 
 - A potential maintainer of the superclass may need to gain a detailed
   understanding of the implementation of in-the-wild subclasses in order to
