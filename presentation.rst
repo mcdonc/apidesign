@@ -81,8 +81,7 @@ I Care About Your Feelings
   (including my own).
 
 - If I use code from one of your projects as an antipattern example, it
-  doesn't mean I don't like you.  It doesn't even mean I don't respect and
-  use your code.
+  doesn't mean I don't like you.
 
 - This talk is impossible to give without showing negative examples.  I'm
   lazy and the best negative examples are those that already exist.
