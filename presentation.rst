@@ -122,8 +122,8 @@ Antipatterns
 - Antipatterns from the Python standard library: ``logging``,
   ``multiprocessing``, ``mimetypes``.
 
-``atexit`` Func Registered During Import
------------------------------------------
+atexit Registration During Import
+---------------------------------
 
 Importing ``multiprocessing`` from the standard library causes an atexit
 function to be registered at module scope:
@@ -143,8 +143,8 @@ function to be registered at module scope:
 
    atexit.register(_exit_function)
 
-``atexit`` Func Registered During Import (2)
---------------------------------------------
+atexit Registration During Import (2)
+-------------------------------------
 
 From ``logging`` module:
 
@@ -171,8 +171,11 @@ Why is This Bad?
   one of them (you might not even know).
 
 - It's unnecessary.  both ``multiprocessing`` and ``logging`` need to manage
-  global state.  But neither really needs to register an `atexit`` function
+  global state.  But neither really needs to register an ``atexit`` function
   until there's any nondefault state to clean up.
+
+Why Is This Bad (Cont'd)?
+-------------------------
 
 - It's convenient until your process shutdown starts spewing errors that you
   can't figure out at unit test exit time.  Then it's pretty damn
@@ -193,12 +196,8 @@ Mutating a global registry as the result of an object constructor (again from
    class Handler(Filterer):
        def __init__(self, level=NOTSET):
            # .. elided code ...
-           _acquireLock()
-           try:
-               _handlers[self] = 1
-               _handlerList.insert(0, self)
-           finally:
-               _releaseLock()
+           _handlers[self] = 1
+           _handlerList.insert(0, self)
            # .. elided code ..
 
 Globals Mutation From Constructor (2)
@@ -234,8 +233,8 @@ What's Wrong With This?
 
 - Makes unit testing hard (need to clean up module global state).
 
-Module-Scope Functions Called for Side-Effects
-----------------------------------------------
+Funcs Called for Side-Effects
+-----------------------------
 
 Users of the ``logging`` module are encouraged to do this:
 
@@ -249,6 +248,8 @@ Calls for Side-Effects (2)
 ---------------------------
 
 ``mimetypes`` module maintains a global registry:
+
+.. sourcecode:: python
 
    import mimetypes
    mimetypes.init()
@@ -266,6 +267,9 @@ What's Wrong with This?
   more than once?  If it is called more than once, what happens when it's
   called the second time?
 
+What's Wrong (Cont'd)
+----------------------
+
 - ``logging`` maintains a global registry as a dictionary at module scope.
   Calling ``basicConfig()`` is effectively a structured monkeypatch of
   ``logging`` module state.  Same for ``addLevelName``.  Logging classes know
@@ -280,12 +284,12 @@ Alternatives to Mutable Globals
   downsides.
 
 - Downside for ``multiprocessing``: its API won't match that of
-  ``threading``.
+  ``threading``.  Downside for ``logging``: streams related to the same
+  handler might interleave.  Downside for ``mimetypes``: might need to
+  reparse system mimetype files.
 
-- Downside for ``logging``: streams related to the same handler might
-  interleave.
-
-- Downside for ``mimetypes``: might need to reparse system mimetype files.
+Alternatives (Cont'd)
+---------------------
 
 - In general, however, no globals in *library* code is the best solution.
   You can always create the library code such that it mutates no global
@@ -445,6 +449,9 @@ What's Wrong With This?
 - Encourages inappropriate coupling of non-web-context code to a web context
   (e.g. "model" modules start to ``import request``).
 
+What's Wrong With This (Cont'd)
+--------------------------------
+
 - Makes unit testing harder than it needs to be.
 
 - Function and class constructor arguments exist for a reason.  Just pass
@@ -498,6 +505,9 @@ Why Is This Bad?
   ``callback`` constructor argument, which must be a callable that accepts a
   userid and a request, and which must return a sequence of groups.
 
+Why Is This Bad (Cont'd)?
+-------------------------
+
 - People don't understand when or why to replace "the big thing" when there's
   a "little thing" inside the big thing that's also replaceable.  The choice
   introduces indecision and confusion.
@@ -522,10 +532,13 @@ The Yo-Yo Problem
 
 - http://en.wikipedia.org/wiki/Yo-yo_problem
 
-- " ... occurs when  a programmer has to read and  understand a program whose
-  inheritance graph  is so long  and complicated  that the programmer  has to
-  keep flipping between  many different class definitions in  order to follow
-  the control flow of the program..."
+" ... occurs when  a programmer has to read and  understand a program whose
+inheritance graph  is so long  and complicated  that the programmer  has to
+keep flipping between  many different class definitions in  order to follow
+the control flow of the program..."
+
+Yo-Yo Problem (Cont'd)
+----------------------
 
 .. sourcecode:: python
 
@@ -554,6 +567,9 @@ Codependency
   assume a particular behavior or outcome from one method or some combination
   of methods.
 
+Codependency (Cont'd)
+---------------------
+
 - The expected behavior or outcome over time becomes hard to explain and
   difficult for a subclass to enforce.  It may change over time, breaking
   existing subclasses in hard-to-predict ways.
@@ -580,7 +596,10 @@ From http://www.midmarsh.co.uk/planetjava/tutorials/design/InheritanceConsidered
   subclass must ensure that its use of the super method as well as its
   extensions are appropriate.
 
-- A subclasse which relies on or changes the state of key instance variables
+Smells (Cont'd)
+---------------
+
+- A subclass which relies on or changes the state of key instance variables
   that are not part of the API.
 
 Alternatives
@@ -604,6 +623,9 @@ Composition
   library code will only have visibility into the component via its
   interface.  The component has no visibility into the library code at all.
 
+Composition (Cont'd)
+--------------------
+
 - It's less likely that a component author will rely on non-API
   implementation details of the library than it would be if he subclassed a
   library parent class.  The potential distraction of the ability to
@@ -613,6 +635,9 @@ Composition
 - A clear contract makes it possible to change the implementation of the
   library *and* the component with reduced fear of breaking the integration
   of the two.
+
+Composition (Cont'd)
+---------------------
 
 - Good when a problem and interaction is well-defined and well-understood.
   If you're writing a library, this should, by definition, be true.  But it
@@ -664,8 +689,8 @@ When To Offer A Superclass
 
 - Importing a module solely for its side effects (sqla declarative mode).
 
-Example
--------
+Todo
+----
 
 - How convenience makes unit testing hard.
 
