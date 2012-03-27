@@ -362,8 +362,6 @@ Django ``settings.py``:
        # ('Your Name', 'your_email@example.com'),
    )
 
-   # .. and so on ..
-
 What's Wrong With This?
 -----------------------
 
@@ -377,7 +375,7 @@ What's Wrong With This?
 
 - The settings are global.  No way to use separate settings per process.
 
-- Better: suggest non-Python configuration so likeihood of circular import
+- Better: suggest non-Python configuration so likelihood of circular import
   problems is reduced.  Configuration parsing can be done at startup time, in
   a nonglobal place, allowing multiple usages of the library per process.
 
@@ -443,9 +441,9 @@ What's Wrong With This?
 - Things that are not logically global (``request`` and/or ``response``) are
   obtained via an import.
 
-- Stacked object proxies / context locals are magical proxy objects that
-  access a thread-local when asked for an attribute (2 levels of magic).
-  Nonmagical version is hidden away from you, at least in Pylons (``request =
+- Stacked object proxies / context locals are proxy objects that access a
+  thread-local when asked for an attribute (2 levels of magic).  Nonmagical
+  version is hidden away from you, at least in Pylons (``request =
   self._py_object.request``).
 
 - Encourages inappropriate coupling of non-web-context code to a web context
