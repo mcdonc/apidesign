@@ -12,7 +12,8 @@ Who Am I
 --------
 
 - Bad Perl hacker until Python.  Came to Python via Zope in 1999.  Worked at
-  Digital Creations (aka Zope Corporation) until 2003.
+  Digital Creations (aka Zope Corporation) until 2003.  Now a consultant with
+  Agendaless Consulting.
 
 - Primary author of: Pyramid web framework, Supervisor UNIX process control
   system, Deform form system, Repoze collection of middleware, and other
@@ -35,10 +36,11 @@ Why People Make Bad Libraries
 
 - Library authors sometimes do the wrong things for the right reasons.
 
-- A skewed sense of how people will need to use the library they're
+- Incorrect assumptions of how people will need to use the library they're
   developing.
 
-- Skewed perception of what's acceptable for the sake of convenience.
+- Optimistic perception of what tradeoffs are acceptable for the sake of
+  convenience.
 
 - Skewed perception of "cleanliness".
 
