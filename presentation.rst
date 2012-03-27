@@ -594,9 +594,7 @@ From http://www.midmarsh.co.uk/planetjava/tutorials/design/InheritanceConsidered
   are thus reliant on the behaviour and results of the overridden methods).
 
 - A subclass which extends inherited methods using ``super``.  Other
-  inherited methods may rely on the extended method.  In addition the
-  subclass must ensure that its use of the super method as well as its
-  extensions are appropriate.
+  inherited methods may rely on the extended method.
 
 Smells (Cont'd)
 ---------------
