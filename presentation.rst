@@ -573,11 +573,11 @@ Codependency
 Codependency (Cont'd)
 ---------------------
 
-- A potential maintainer of the superclass may need to gain a detailed
+- When the superclass reaches a high level of abstraction, it may not be
+  obvious what the purpose of the class is or why it's implemented as it is.
+  A potential maintainer of the superclass may need to gain a detailed
   understanding of the implementation of in-the-wild subclasses in order to
-  maintain the superclass.  When the superclass reaches a high level of
-  abstraction, it may not be obvious what the purpose of the class is or why
-  it's implemented as it is.  This can scare off potential contributors.
+  change the superclass.  This can scare off potential contributors.
 
 - The superclass may assume a particular state outcome from a combination of
   method calls.  The expected outcome of such an operation is hard to explain
@@ -629,10 +629,10 @@ Composition (Cont'd)
 --------------------
 
 - It's less likely that a component author will rely on non-API
-  implementation details of the library than it would be if he subclassed a
-  library parent class.  The potential distraction of the ability to
-  customize every aspect of the behavior of the system by overriding methods
-  is removed.
+  implementation details of the library than it would be if he was required
+  to subclass a library parent class.  The potential distraction of the
+  ability to customize every aspect of the behavior of the system by
+  overriding methods is removed.
 
 - A clear contract makes it possible to change the implementation of the
   library *and* the component with reduced fear of breaking the integration
@@ -641,11 +641,11 @@ Composition (Cont'd)
 Composition (Cont'd)
 ---------------------
 
-- Good when a problem and interaction is well-defined and well-understood.
-  If you're writing a library, this should, by definition, be true.  But it
-  can be limiting in circumstances where the problem is not yet well-defined
-  or well-understood, like in requirements-sparse environments.  Composition
-  is "take it or leave it" customizability.  It can be easier to use
+- Composition is "take it or leave it" customizability.  Good when a problem
+  and interaction is well-defined and well-understood.  If you're writing a
+  library, this should, by definition, be true.  But it can be limiting in
+  circumstances where the problem is not yet well-defined or well-understood,
+  like in requirements-sparse environments.  It can be easier to use
   inheritance in a system where you control the horizontal and vertical.  If
   you control the horizontal and vertical, you can always later switch from
   inheritance to composition once the problem is fully understood and more
@@ -659,7 +659,7 @@ Event Systems
 - Instead of adding a ``on_modification`` method of a class, and requiring
   that people subclass the class to override the method, have the
   would-be-superclass send an event to an event system.  The event system can
-  be plugged into by system extenders as necessary.
+  be subscribed to by system extenders as necessary.
 
 - This is more flexible than subclassing too, because there's more than one
   entry point to extending behavior: an event can be subscribed to by any
@@ -679,6 +679,7 @@ When To Offer A Superclass
   concrete parent class, you're usually inheriting from something that the
   author hasn't designed for specialization, and it's likely that neither you
   nor he will be clear on what the specialization interface actually is.
+  High likelihood for future breakage.
 
 #6: First, Do No Harm
 ----------------------
