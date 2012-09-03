@@ -19,60 +19,6 @@ Who Am I
   system, Deform form system, Repoze collection of middleware, and other
   unmentionables.  Contributor to Zope, WebOb, and other OSS projects.
 
-Guidelines
-----------
-
-- If you follow these guidelines, your library will be useful for other
-  people in both the scenarios you expect and in ones you don't.
-
-- The importance of these guidelines increases along with the number of users
-  whom will depend upon your library.  The more people whom use your library,
-  the more likely it is that some of them will try to use your library in
-  unexpected ways.  Ex: someone will want to create two separate applications
-  that use your library in the same process.
-
-Why People Make Bad Libraries
------------------------------
-
-- Library authors sometimes do the wrong things for the right reasons.
-
-- Incorrect assumptions of how people will need to use the library they're
-  developing.
-
-- Optimistic perception of what tradeoffs are acceptable for the sake of
-  convenience.
-
-- Skewed perception of "cleanliness".
-
-Libs, Frameworks, Apps
-----------------------
-
-- Library: maintains none or little of its own state, no or few callbacks.
-
-- Framework: no or little state, but lots of callbacks.  Some frameworks
-  mutate or require global state (IMO inappropriately).  A web framework
-  instance is often fed to a global mainloop, but that doesn't mean it should
-  use globals with abandon.  Even then if the framework doesn't use global
-  state, with a little care, two framework instances can live in the same
-  process.
-
-- Application: maintains lots of state, can use global state with abandon.
-
-Convenience != "Cleanliness"
-----------------------------
-
-- The assumption: "clean" == "is maximally convenient for the case I presume
-  this code is going to be used in"
-
-- The reality:  "clean" == "maximally understandable; without surprises or
-  exceptions".
-
-- The fewer limiting assumptions made by the library, the fewer surprises it
-  will have and the more understandable it will be.
-
-- Ex: thread-local state management doesn't work in async systems without
-  magical intervention.
-
 I Care About Your Feelings
 --------------------------
 
@@ -85,6 +31,45 @@ I Care About Your Feelings
 - This talk is impossible to give without showing negative examples.  I'm
   lazy and the best negative examples are those that already exist.
 
+Libs, Frameworks, Apps
+----------------------
+
+- Application: maintains lots of state, can use global state with abandon.
+
+- Framework: no or little state, but lots of callbacks.  Some frameworks
+  mutate or require global state (IMO inappropriately).
+
+- Library: maintains none or little of its own state, no or few callbacks.
+
+.. class:: handout
+
+  A web framework instance is often fed to a global mainloop, but that
+  doesn't mean it should use globals with abandon.  Even then if the
+  framework doesn't use global state, with a little care, two framework
+  instances can live in the same process.
+
+Guidelines (Cont'd)
+--------------------
+
+- This talk covers four guidelines.
+
+- If you follow these guidelines, your library will be useful for other
+  people in both the scenarios you expect and in ones you don't.
+
+- The importance of the guidelines increases with the number of users whom
+  might reuse your code.
+
+Guidelines
+----------
+
+- #1: Global State is Precious.
+
+- #2: Don't Design Exclusively For Convenience
+
+- #3: Avoid Knobs on Knobs
+
+- #4: Composition Usually Beats Inheritance
+
 #1: Global State is Precious
 ----------------------------
 
@@ -93,11 +78,11 @@ I Care About Your Feelings
 
 - Avoid requiring that other people mutate global state to use your library.
   Ex: telling people to set an environment variable or call a function
-  which mutates global state to use your library
+  which mutates global state to use your library.
 
-- If your library mutates global state when it's imported or you tell people
-  to mutate global state to use it, it's not really a library, it's kinda
-  more like an application.
+- If your library mutates global state when it's imported or you require
+  people to mutate global state to use it, it's not really a library, it's
+  kinda more like an application.
 
 OK at Module Scope
 ------------------
@@ -119,7 +104,9 @@ Antipatterns
 ------------
 
 - Antipatterns from the Python standard library: ``logging``,
-  ``multiprocessing``, ``mimetypes``.
+  ``multiprocessing``, ``mimetypes``, ``asyncore``.
+
+- Non-stdlib: ``braintree`` Python module, Django ``settings``.
 
 atexit Register During Import
 -----------------------------
@@ -161,14 +148,18 @@ Why is This Bad?
 
 - It's unexpected.  Registration of an ``atexit`` function is a mutation of
   global state that results solely from an *import* of a module, whether or
-  not you actually use any APIs from the module.  Your program will behave
-  differently at shutdown if you cause ``multiprocessing`` or ``logging`` to
-  be imported, or if you import a third-party module that happens to import
-  one of them (you might not even know).
+  not you actually use any APIs from the module.  
 
 - It's unnecessary.  both ``multiprocessing`` and ``logging`` need to manage
   global state.  But neither really needs to register an ``atexit`` function
   until there's any nondefault state to clean up.
+
+.. class:: handout
+
+  Your program will behave differently at shutdown if you cause
+  ``multiprocessing`` or ``logging`` to be imported, or if you import a
+  third-party module that happens to import one of them (you might not even
+  know).
 
 Why Is This Bad (Cont'd)?
 -------------------------
@@ -251,12 +242,26 @@ Calls for Side-Effects (2)
    mimetypes.init()
    mimetypes.add_type('text/foo', '.foo')
 
+Calls for Side-Effects (3)
+--------------------------
+
+From the Python Braintree payment gateway API:
+
+.. sourcecode:: python
+
+   braintree.Configuration.configure(
+       braintree.Environment.Sandbox,
+       merchant_id="use_your_merchant_id",
+       public_key="use_your_public_key",
+       private_key="use_your_private_key"
+       )
+
 What's Wrong with This?
 -----------------------
 
-- The ``logging`` and ``mimetypes`` APIs encourage users to mutate their
-  module's global state by exposing APIs that have return values that nobody
-  cares about (the APIs are called only for side effects).
+- The ``logging``, ``mimetypes`` and ``braintree`` APIs encourage users to
+  mutate their module's global state by exposing APIs that have return values
+  that nobody cares about (the APIs are called only for side effects).
 
 - Introduces responsibility, chronology, and idempotency confusion.  Who is
   responsible for calling this?  When should they call it?  Can it be called
@@ -270,51 +275,7 @@ What's Wrong (Cont'd)
   Calling ``basicConfig()`` is effectively a structured monkeypatch of
   ``logging`` module state.  Same for ``addLevelName``.  Logging classes know
   about this global state and use it.  The ``mimetypes`` module API maintains
-  a global registry too.  Same deal.
-
-Alternatives to Mutable Globals
--------------------------------
-
-- All of these packages could choose not manage any global (module-scope)
-  state at all, and encapsulate all state in an instance.  This has
-  downsides.
-
-- Downside for ``multiprocessing``: its API won't match that of
-  ``threading``.  Downside for ``logging``: streams related to the same
-  handler might interleave.  Downside for ``mimetypes``: might need to
-  reparse system mimetype files.
-
-Alternatives (Cont'd)
----------------------
-
-- In general, however, no globals in *library* code is the best solution.
-  You can always create the library code such that it mutates no global
-  state, but then, as necessary, create a convenience application module/API
-  which integrates the library stuff and manages global state on behalf of
-  its users.  This makes the library code reusable, and if someone wants to
-  build an alternate set of convenience APIs, they can.
-
-Quote
------
-
-This method of turning your code inside out is the secret to solving what
-appear to be hopelessly state-oriented problems in a purely functional
-style. Push the statefulness to a higher level and let the caller worry about
-it. Keep doing that as much as you can, and you'll end up with the bulk of
-the code being purely functional. -- http://prog21.dadgum.com/131.html
-
-#2: Module Scope Config
------------------------
-
-- Settings at module scope, requiring monkeypatching to change.
-
-- Or configuration systems which tell the user to make a Python module
-  available for the *library* to import.
-
-Antipatterns
-------------
-
-``logging`` and Django.
+  a global registry too.  Same deal with Braintree.
 
 Not-Really-Configuration
 ------------------------
@@ -362,24 +323,72 @@ What's Wrong With This?
 - The library/framework itself wants to import settings from this module.
 
 - But the author of the settings code also usually wants to import stuff from
-  the library/framework.
-
-- Extremely high likelihood of circular import problems (framework imports
-  settings, settings imports framework).
+  the library/framework.  Extremely high likelihood of circular import
+  problems (framework imports settings, settings imports framework).
 
 - The settings are global.  No way to use separate settings per process.
 
 Solutions
 ---------
 
+- Purely imperative nonglobal configuration at process startup time within
+  the equivalent of ``if __name__ == '__main__':`` block.
+
 - Suggest non-Python configuration so likelihood of circular import problems
-  is reduced.  Configuration parsing can be done at startup time, in a
-  nonglobal place, allowing multiple usages of the library per process.
+  is eliminated.  Configuration parsing can be done at startup time, in a
+  nonglobal place, allowing multiple usages of the library per process.  If
+  it's a framework, pass configuration to callbacks as necessary.
 
-- Purely imperative configuration at process startup time.
+Alternatives to Mutable Globals
+-------------------------------
 
-#3: Avoid Convenience Features
-------------------------------
+- All of these packages could choose not manage any global (module-scope)
+  state at all, and encapsulate all state in an instance.  This has
+  downsides.
+
+- Downside for ``multiprocessing``: its API won't match that of
+  ``threading``.  Downside for ``logging``: streams related to the same
+  handler might interleave.  Downside for ``mimetypes``: might need to
+  reparse system mimetype files.
+
+Alternatives (Cont'd)
+---------------------
+
+- In general, however, no globals in *library* code is the best solution.
+  You can always create the library code such that it mutates no global
+  state, but then, as necessary, create a convenience application module/API
+  which integrates the library stuff and manages global state on behalf of
+  its users.  This makes the library code reusable, and if someone wants to
+  build an alternate set of convenience APIs, they can.
+
+Restraint Under Pressure
+------------------------
+
+Example of restraint under obvious pressure for convenience and magic from
+the Python ``sched.scheduler`` library class:
+
+"Each instance of this class manages its own queue.  No multi-threading is
+implied; you are supposed to hack that yourself, or use a single instance per
+application."
+
+.. sourcecode:: python
+
+   scheduler = sched.scheduler()
+   def do(arg): print arg
+   scheduler.enter(30, 0, do, 1)
+   scheduler.run()
+
+Quote
+-----
+
+"This method of turning your code inside out is the secret to solving what
+appear to be hopelessly state-oriented problems in a purely functional
+style. Push the statefulness to a higher level and let the caller worry about
+it. Keep doing that as much as you can, and you'll end up with the bulk of
+the code being purely functional." -- http://prog21.dadgum.com/131.html
+
+#2: Avoid Design For Convenience
+---------------------------------
 
 - Avoid convenience (magical) features such as thread local access until
   you've finished creating the inconvenient (nonmagical) version.
@@ -442,35 +451,52 @@ What's Wrong With This?
 
 - Stacked object proxies / context locals are proxy objects that access a
   thread-local when asked for an attribute.  Two levels of magic: a proxy and
-  its retrieval of a concrete threadlocal.  Nonmagical version is hidden away
+  its retrieval of a thread-local object.  Nonmagical version is hidden away
   from you, at least in Pylons (``request = self._py_object.request``).
 
 - Encourages inappropriate coupling of non-web-context code to a web context
   (e.g. "model" modules start to ``import request``).
 
-- Makes unit testing harder than it needs to be.
+- Makes unit testing harder than it needs to be, because proxy objects need
+  to be initialized before code that uses them is called.
 
 Instead
 -------
 
 - Design a framework so its users receive an argument (e.g. ``request``) and
   suggest to them that they pass derivations
-  (e.g. ``request.GET['first_name']``) around.  It's initially less
-  convenient for consumers.  It's usually also the right thing to do *in
-  library and framework code*.  Remember that people will want to use your
-  stuff to compose larger systems, and your assumptions about environment may
-  not fit there.
+  (e.g. ``request.GET['first_name']``) around.  It's less convenient for
+  consumers.  It's usually also the right thing to do in library and
+  framework code.  Remember that people will want to use your stuff to
+  compose larger systems, and your assumptions about environment may not fit
+  there.
 
 - You can always create an (optional) convenience API that allows your
   library's consumers to elide the passing of state, but you can never remove
   a "mandatory" convenience feature from a library.
 
-#4: Avoid Knobs on Knobs
+Convenience != "Cleanliness"
+----------------------------
+
+- The assumption: "clean" == "is maximally convenient for the case I presume
+  this code is going to be used in"
+
+- The reality:  "clean" == "maximally understandable; without surprises or
+  exceptions".
+
+- The fewer limiting assumptions made by the library, the fewer surprises it
+  will have and the more understandable it will be.
+
+- Ex: thread-local state management doesn't work in async systems without
+  magical intervention.
+
+#3: Avoid Knobs on Knobs
 ------------------------
 
-- A "knob" is often a replaceable component in a framework or library.
+- A "knob" is often a replaceable ("pluggable") component in a framework or
+  library.
 
-- When that replaceable component itself offers a knob, this is the "knobs on
+- When a replaceable component itself offers a knob, this is the "knobs on
   knobs" pattern.
 
 Pyramid Authn Policy
@@ -520,13 +546,13 @@ Why Is This Bad (Cont'd)?
   to override e.g. a ``find_groups`` method in the subclass would probably be
   less confusing and more straightforward in this case.
 
-#5: Superclass Danger
----------------------
+#4: Composition Beats Inheritance
+---------------------------------
 
 - Offering up superclasses "from on high" in a library or framework is
-  often a bad idea (although not always).
+  often a bad idea.
 
-- Composition usually beats inheritance.
+- Composition *usually* beats inheritance (although not always).
 
 The Yo-Yo Problem
 ------------------
@@ -811,19 +837,11 @@ When To Offer (Cont'd)
   about it.  Python programmers will always understand the mechanics of
   inheritance better than whatever composition API you provide.
 
-#6: First, Do No Harm
-----------------------
-
-- Offering decorators that change the call signature of the function or
-  method they decorate.
-
 Todo
 ----
-
-- How convenience makes unit testing hard.
 
 - system testing vs unit testing, YAGNI/explicilt dependencies/quicker tests,
   test_spam only needs the 'spambayes_score' config value, not your entire
   django settings module (which you have to setup/clear after every test),
-  can't run those tests in parallel
+  can't run those tests in parallel without multiple processes.
 
