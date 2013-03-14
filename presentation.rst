@@ -4,7 +4,7 @@ API Design for Libraries
 ========================
 
 :Authors: Chris McDonough, Agendaless Consulting
-:Date: X/X/2013 (PyCon 2013)
+:Date: 03/15/2013 (PyCon 2013)
 
 ..  footer:: Chris McDonough, Agendaless Consulting
 
@@ -22,8 +22,8 @@ Who Am I
 I Care About Your Feelings
 --------------------------
 
-- During this talk, I call out antipattern examples from actual projects
-  (including my own).
+- During this talk, I call out antipattern examples from actual projects,
+  including my own.
 
 - If I use code from one of your projects as an antipattern example, it
   doesn't mean I don't like you.
@@ -165,10 +165,9 @@ Why Is This Bad (Cont'd)?
 -------------------------
 
 - It's convenient until your process shutdown starts spewing errors that you
-  can't figure out at unit test exit time.  Then it's pretty damn
-  inconvenient.  Example: seemingly random error message at shutdown time if
-  you attempt to use the ``logging.Handler`` class independent of the rest of
-  the framework (see next slide).
+  can't figure out at unit test exit time.  Then it's pretty inconvenient.
+  Example: seemingly random error message at shutdown time if you attempt to
+  use the ``logging.Handler`` class independent of the rest of the framework.
 
 Ctor Globals Mutation
 ---------------------
@@ -322,9 +321,10 @@ What's Wrong With This?
 
 - The library/framework itself wants to import settings from this module.
 
-- But the author of the settings code also usually wants to import stuff from
-  the library/framework.  Extremely high likelihood of circular import
-  problems (framework imports settings, settings imports framework).
+- But since it's Python, the author of the settings code will be tempted to
+  usually import stuff from the library/framework.  In such a case, there's an
+  extremely high likelihood of circular import problems (framework imports
+  settings, settings imports framework).
 
 - The settings are global.  No way to use separate settings per process.
 
@@ -653,8 +653,7 @@ Composition
   constructor that represents the custom logic that would have otherwise gone
   in a method of a subclass.  The thing they pass to you is a "component".
 
-- The interaction between a component and your library class is
-  "composition".
+- The interaction between a component and your library code is "composition".
 
 Composition (Cont'd)
 ---------------------
@@ -693,7 +692,7 @@ inheritance:
        def increment_channel(self):
            self.channel += 1
 
-       def click(self, button):
+       def click(self, button_name):
            raise NotImplementedError
 
 Composition Example (Cont'd)
@@ -706,8 +705,8 @@ Here's an example of using the TVRemote class:
    from tv import TVRemote
 
    class MyRemote(TVRemote):
-       def click(self, button):
-           if button == 'blue':
+       def click(self, button_name):
+           if button_name == 'blue':
                self.increment_channel()
 
    remote = MyRemote()
@@ -729,8 +728,8 @@ instead of inheritance:
        def increment_channel(self):
            self.channel += 1
 
-       def click(self, button):
-           self.buttons.click(self, button)
+       def click(self, button_name):
+           self.buttons.click(self, button_name)
 
 Composition Example (Cont'd)
 -----------------------------
@@ -787,7 +786,7 @@ Event Systems (Cont'd)
   entry point to extending behavior: an event can be subscribed to by any
   number of prospective listeners instead of just one.
 
-- Systems reliant on event handling can be a bitch to understand and debug
+- But systems reliant on event handling can be a bitch to understand and debug
   due to action-at-a-distance.
 
 Event System Example
@@ -796,18 +795,18 @@ Event System Example
 .. sourcecode:: python
 
    class ButtonPress(object):
-        def __init__(self, remote, button)
+        def __init__(self, remote, button_name)
             self.remote = remote
-            self.button = button
+            self.button_name = button_name
    class TVRemote(object):
         def __init__(self, event_system):
             self.channel = 0
             self.event_system = event_system
-        def click(self, button):
-            self.event_system.notify(ButtonPress(self, button))
+        def click(self, button_name):
+            self.event_system.notify(ButtonPress(self, button_name))
    event_system = EventSystem()
    def subscriber(event):
-       if event.button == 'blue': event.remote.increment_channel()
+       if event.button_name == 'blue': event.remote.increment_channel()
    event_system.subscribe(ButtonPress, subscriber)
    remote = TVRemote(event_system)
    remote.click('blue')
@@ -837,11 +836,9 @@ When To Offer (Cont'd)
   about it.  Python programmers will always understand the mechanics of
   inheritance better than whatever composition API you provide.
 
-Todo
-----
+Contact Info
+------------
 
-- system testing vs unit testing, YAGNI/explicilt dependencies/quicker tests,
-  test_spam only needs the 'spambayes_score' config value, not your entire
-  django settings module (which you have to setup/clear after every test),
-  can't run those tests in parallel without multiple processes.
-
+Chris McDonough, Agendaless Consulting
+@chrismcdonough on Twitter
+"mcdonc" on Freenode IRC
