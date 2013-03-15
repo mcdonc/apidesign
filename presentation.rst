@@ -86,33 +86,6 @@ Guidelines
   people to mutate global state to use it, it's not really a library, it's
   kinda more like an application.
 
-OK at Module Scope
-------------------
-
-An import of another module or global.
-
-Assignment of a variable name in the module to some constant value.
-
-The addition of a function via a def statement.
-
-The addition of a class via a class statement.
-
-Control flow which may handles conditionals for platform-specific handling
-or failure handling of the above.
-
-.. class:: handout
-
-   Anything else will usually end in tears.
-
-Antipatterns
-------------
-
-Antipatterns from the Python standard library: ``logging``,
-``multiprocessing``, ``mimetypes``, ``asyncore``.
-
-Non-stdlib antipatterns exist in ``braintree`` Python module, Django
-``settings``.
-
 Registration During Import
 --------------------------
 
@@ -180,6 +153,7 @@ Mutating a global registry as the result of an object constructor (again from
 .. sourcecode:: python
 
    _handlers = {}  #repository of handlers
+   _handlerList = [] # ordered list of handlers
 
    class Handler(Filterer):
        def __init__(self, level=NOTSET):
@@ -249,6 +223,8 @@ Calls for Side-Effects (3)
 From the Python Braintree payment gateway API:
 
 .. sourcecode:: python
+
+   import braintree
 
    braintree.Configuration.configure(
        braintree.Environment.Sandbox,
@@ -329,38 +305,51 @@ What's Wrong With This?
 
 - The settings are global.  No way to use separate settings per process.
 
-Solutions
----------
+OK at Module Scope
+------------------
 
-Purely imperative nonglobal configuration at process startup time within the
-equivalent of ``if __name__ == '__main__':`` block.
+A non-circular import of another module or global.
 
-Suggest non-Python configuration so likelihood of circular import problems is
-eliminated.  Configuration parsing can be done at startup time, in a nonglobal
-place, allowing multiple usages of the library per process.  If it's a
-framework, pass configuration in.
+Assignment of a variable name in the module to some constant value.
 
-Alts. to Mutable Globals
-------------------------
+The addition of a function via a def statement.
 
-- All of these packages could choose not manage any global (module-scope)
-  state at all, and encapsulate all state in an instance.  This has
-  downsides.
+The addition of a class via a class statement.
 
-- Downside for ``multiprocessing``: its API won't match that of
-  ``threading``.  Downside for ``logging``: streams related to the same
-  handler might interleave.  Downside for ``mimetypes``: might need to
-  reparse system mimetype files.
-
-- In general, however, no globals in *library* code is the best solution.
+Control flow which handles conditionals for platform-specific failure handling
+of the above.
 
 .. class:: handout
 
-   You can always create the library code such that it mutates no global state,
-   but then, as necessary, create a convenience application module/API which
-   integrates the library stuff and manages global state on behalf of its
-   users.  This makes the library code reusable, and if someone wants to build
-   an alternate set of convenience APIs, they can.
+   Anything else will usually end in tears.
+
+Solutions
+---------
+
+Think of an application bootstrapping in two phases.
+
+Before ``if __name__ == '__main__':``.  Do nothing.
+
+As the result of ``if __name__ == '__main__'``.  Do everything.
+
+Downsides
+---------
+
+Downside for ``multiprocessing`` to ditch its global state maintenance: its API
+won't match that of ``threading``.
+
+Downside for ``logging``: streams related to the same handler might interleave.
+
+Downside for ``mimetypes``: might need to reparse system mimetype files.
+
+But, But..
+----------
+
+You can always create library code such that it mutates no global state, but
+then, as necessary, create a convenience application module which integrates
+the library stuff and mutates some global state on behalf of its users.  This
+makes the library code reusable, and if someone wants to use the application
+code, they can.
 
 Restraint Under Pressure
 ------------------------
@@ -489,8 +478,7 @@ Convenience != Cleanliness
 #3: Avoid Knobs on Knobs
 ------------------------
 
-A "knob" is often a replaceable ("pluggable") component in a framework or
-library.
+A "knob" is a replaceable component in a framework or library.
 
 When a replaceable component itself offers a knob, this is the "knobs on
 knobs" pattern.
@@ -678,7 +666,7 @@ Composition
    library and the component with reduced fear of breaking an integration of
    the two.
 
-Composition Example
+Inheritance Example
 -------------------
 
 Here's an example of providing a class built to be specialized via
@@ -743,8 +731,8 @@ composition:
    from tv import TVRemote
 
    class Buttons(object):
-       def click(self, remote, button):
-           if button == 'blue':
+       def click(self, remote, button_name):
+           if button_name == 'blue':
                remote.increment_channel()
 
    buttons = Buttons()
@@ -833,6 +821,17 @@ Composition is harder for people to wrap their brains around.
    instead of composition because I would have had to answer fewer questions
    about it.  Python programmers will always understand the mechanics of
    inheritance better than whatever composition API you provide.
+
+Guidelines
+----------
+
+#1: Global State is Precious
+
+#2: Don't Design Exclusively For Convenience
+
+#3: Avoid Knobs on Knobs
+
+#4: Composition Usually Beats Inheritance
 
 Contact Info
 ------------
